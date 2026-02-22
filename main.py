@@ -58,7 +58,7 @@ async def disconnect(interaction: discord.Interaction):
 
 @client.tree.command(name="call", description="Llama a un miembro del servidor")
 async def call(interaction: discord.Interaction, member: discord.Member):
-    await interaction.channel.send(f'llamando a {member.name}')
+    await interaction.response.send_message(f'llamando a {member.name}')
     try:
         await member.send(f'{member.name} TE ESTAN LLAMANDO CONTESTA!!!!!!!!!!!!')
     except Exception as e:
