@@ -13,6 +13,13 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 
 active_sessions = {}
 
+def format_time(seconds:int) -> str:
+    minutes = seconds // 60
+    hours = minutes // 60
+    minutes = minutes % 60
+    seconds = int(seconds % 60)
+    return f"{round(hours)}h {round(minutes)}m {round(seconds)}s"
+
 class Client(commands.Bot):
     async def on_ready(self):
         print(f"Connecting to database: ...")
@@ -107,8 +114,25 @@ async def stats(interaction: discord.Interaction):
         "SELECT name, seconds_in_call FROM voice_stats WHERE (id = ($1) AND guild_id = ($2))", user.id, user.guild.id)
     response = f"Nombre: {user.name}\nTiempo pasado en llamada:"
     if not user_stats:
-        await interaction.response.send_message(f"{response} 0 segundos!")
+        await interaction.response.send_message(f"{response} 0s")
     else:
-        await interaction.response.send_message(f"{response} {int(user_stats[0]["seconds_in_call"])} segundos")
+        time = format_time(int(user_stats[0]["seconds_in_call"]))
+        await interaction.response.send_message(f"{response} {time} ")
+
+@client.tree.command(name="topstats", description="Revisa las 5 personas con mayor tiempo en llamada del servidor!")
+async def topstats(interaction: discord.Interaction):
+    top_users = await client.db.fetch(
+        "SELECT name, seconds_in_call FROM voice_stats WHERE (guild_id = ($1))" \
+        "ORDER BY seconds_in_call DESC LIMIT 5", interaction.guild.id
+    )
+    top_print = "Top 5 usuarios con mayor tiempo en las llamadas:\n"
+    i = 1
+    for user in top_users:
+        time = format_time(user['seconds_in_call'])
+        top_print += f"{i}. {user['name']}: {time}\n"
+        i += 1
+
+    await interaction.response.send_message(top_print)
+
 
 client.run(token)
