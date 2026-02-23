@@ -4,17 +4,27 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 from dotenv import load_dotenv
+import asyncpg
 import os
 import time
 load_dotenv()
 token = os.getenv("TOKEN")
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 active_sessions = {}
 
-total_time = {}
-
 class Client(commands.Bot):
     async def on_ready(self):
+        print(f"Connecting to database:")
+        self.db = await asyncpg.connect(DATABASE_URL)
+
+        await self.db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS voice_stats (
+                id BIGINT PRIMARY KEY,
+                name TEXT NOT NULL,
+                seconds_in_call REAL DEFAULT 0)
+            """)
         print(f'We have logged in as {client.user}')
         try:
             synced = await self.tree.sync()
@@ -31,15 +41,16 @@ class Client(commands.Bot):
         current_time:float = time.time()
         if before.channel == None and after.channel != None: # was not in a channel and joined
             active_sessions[member.id] = current_time
-            print(active_sessions[member.id], member.id)
         elif after.channel == None and before.channel != None: # left a channel
             if member.id not in active_sessions:
                 return
             time_joined = active_sessions[member.id]
-            print(member.id)
-            total_time[member.id] = total_time.get(member.id,0) + (current_time - time_joined)
-            print(total_time[member.id])
-
+            duration = current_time - time_joined
+            await self.db.execute(
+                """
+                INSERT INTO voice_stats (id, name, seconds_in_call) VALUES ($1, $2, $3)
+                ON CONFLICT (id) DO UPDATE SET seconds_in_call = voice_stats.seconds_in_call + $3, name = $2
+                """, member.id, member.name, duration)
 
 
 intents = discord.Intents.default()
