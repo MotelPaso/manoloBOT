@@ -5,8 +5,13 @@ from discord.ext import commands
 from discord import app_commands
 from dotenv import load_dotenv
 import os
+import time
 load_dotenv()
 token = os.getenv("TOKEN")
+
+active_sessions = {}
+
+total_time = {}
 
 class Client(commands.Bot):
     async def on_ready(self):
@@ -16,9 +21,26 @@ class Client(commands.Bot):
             print(f'synced {len(synced)} global commands')
         except Exception as e:
             print(f'Error in sync: {e}')
-    async def on_message(self,message):
+    async def on_message(self, message):
         if message.author == client.user:
             return
+        if message.content == "ping":
+            latency = client.latency * 1000
+            await message.channel.send(f"ping: {round(latency,2)}ms")
+    async def on_voice_state_update(self, member, before, after):
+        current_time:float = time.time()
+        if before.channel == None and after.channel != None: # was not in a channel and joined
+            active_sessions[member.id] = current_time
+            print(active_sessions[member.id], member.id)
+        elif after.channel == None and before.channel != None: # left a channel
+            if member.id not in active_sessions:
+                return
+            time_joined = active_sessions[member.id]
+            print(member.id)
+            total_time[member.id] = total_time.get(member.id,0) + (current_time - time_joined)
+            print(total_time[member.id])
+
+
 
 intents = discord.Intents.default()
 intents.message_content = True
