@@ -135,6 +135,9 @@ async def topstats(interaction: discord.Interaction):
 
 @client.tree.command(name="play_link", description="Ingresa un link de Youtube y toca una cancion.")
 async def play_link(interaction: discord.Interaction, link_video:str):
+    if os.getenv("ENV") == 'prod':
+        await interaction.response.send_message("Este comando no esta disponible en este momento... :pleading_face: ")
+        return
     user = interaction.user
     if (user.voice == None):
         await interaction.response.send_message("Que no estas en un canal tonto polla")
