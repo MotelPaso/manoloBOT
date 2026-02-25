@@ -113,7 +113,7 @@ async def stats(interaction: discord.Interaction):
         "SELECT name, seconds_in_call FROM voice_stats WHERE (id = ($1) AND guild_id = ($2))", user.id, user.guild.id)
     response = f"Nombre: {user.name}\nTiempo pasado en llamada:"
     if not user_stats:
-        await interaction.response.send_message(f"{response} 0 segundos!")
+        await interaction.response.send_message(f"{response} 0s")
     else:
         time = format_time(int(user_stats[0]["seconds_in_call"]))
         await interaction.response.send_message(f"{response} {time} ")
